@@ -2,10 +2,16 @@ import OpenAI from 'openai'
 import { ProjectIdea, Repo } from '@/types'
 
 // Uses NVIDIA NIM's OpenAI-compatible endpoint to access Kimi K2.5
-const client = new OpenAI({
-  apiKey:  process.env.NVIDIA_API_KEY!,
-  baseURL: 'https://integrate.api.nvidia.com/v1',
-})
+let _client: OpenAI | null = null
+function getClient() {
+  if (!_client) {
+    _client = new OpenAI({
+      apiKey:  process.env.NVIDIA_API_KEY!,
+      baseURL: 'https://integrate.api.nvidia.com/v1',
+    })
+  }
+  return _client
+}
 
 const MODEL = process.env.NVIDIA_MODEL_ID || 'moonshot-ai/kimi-k2-5-instruct'
 
@@ -15,7 +21,7 @@ export async function generateIdea(
   interest: string,
   year: string = '3rd Year'
 ): Promise<ProjectIdea> {
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model: MODEL,
     messages: [
       {
@@ -79,7 +85,7 @@ export async function annotateRepos(
     .map(r => `- URL: ${r.url}\n  Name: ${r.name}\n  Description: ${r.description}\n  Language: ${r.language}\n  Stars: ${r.stars}`)
     .join('\n')
 
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model: MODEL,
     messages: [
       {

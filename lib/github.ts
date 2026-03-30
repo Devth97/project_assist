@@ -24,7 +24,7 @@ export async function findRepos(idea: ProjectIdea): Promise<Repo[]> {
 
   // 3. Fallback: Firecrawl when GitHub returns fewer than 3 results
   if (repos.length < 3 && process.env.FIRECRAWL_API_KEY) {
-    const extras = await scrapeViaFirecrawl(idea.interest, idea.tech_stack[0])
+    const extras = await scrapeViaFirecrawl(idea.project_title, idea.tech_stack[0])
     repos = [...repos, ...extras]
   }
 
