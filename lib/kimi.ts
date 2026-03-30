@@ -1,7 +1,8 @@
 import OpenAI from 'openai'
 import { ProjectIdea, Repo } from '@/types'
 
-// Uses NVIDIA NIM's OpenAI-compatible endpoint to access Kimi K2.5
+// NVIDIA NIM — using Llama 3.3 70B (fast, ~3-5s) via OpenAI-compatible API
+// Kimi K2.5 is a 95-second reasoning model — too slow for serverless functions
 let _client: OpenAI | null = null
 function getClient() {
   if (!_client) {
@@ -13,7 +14,7 @@ function getClient() {
   return _client
 }
 
-const MODEL = process.env.NVIDIA_MODEL_ID || 'moonshot-ai/kimi-k2-5-instruct'
+const MODEL = 'meta/llama-3.3-70b-instruct'
 
 // ── Idea Generator ─────────────────────────────────────────────────────────────
 export async function generateIdea(
@@ -31,7 +32,7 @@ Generate ONE original, implementable project idea.
 
 Requirements:
 - Relevant to India's real problems (agriculture, healthcare, traffic, water, energy, education)
-- Achievable in a 2–4 month college semester
+- Achievable in a 2-4 month college semester
 - NOT a generic project (no calculators, todo lists, library management, basic chat apps)
 - Aligned with the student's branch AND interest
 - Specific enough that a student knows exactly what to build
@@ -61,12 +62,10 @@ Generate a project using ${interest} as the primary technology that solves a vis
       },
     ],
     temperature: 0.8,
-    max_tokens: 8192,
+    max_tokens: 1024,
   })
 
-  // Kimi K2.5 is a reasoning model — content may be in .content or .reasoning
-  const msg = response.choices[0].message as any
-  const raw = msg.content || msg.reasoning_content || msg.reasoning || ''
+  const raw = response.choices[0].message.content || ''
   const cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -76,7 +75,7 @@ Generate a project using ${interest} as the primary technology that solves a vis
   try {
     return JSON.parse(cleaned) as ProjectIdea
   } catch {
-    console.error('[kimi] Invalid JSON from model:', cleaned.slice(0, 200))
+    console.error('[ai] Invalid JSON from model. Raw:', cleaned.slice(0, 300))
     throw new Error('AI returned an invalid response. Please try again.')
   }
 }
@@ -97,34 +96,27 @@ export async function annotateRepos(
     messages: [
       {
         role: 'system',
-        content: `Given a project idea and GitHub repos, write a 1-2 sentence relevance note for each repo explaining WHY it specifically helps with this project. Name the exact feature, module, or code that maps to the student's needs.
+        content: `Given a project idea and GitHub repos, write a 1-2 sentence relevance note for each repo.
 
 RETURN ONLY a JSON array, no markdown, no extra text:
-[{"repo_url": "https://github.com/...", "relevance_note": "..."}]
-
-Rules:
-- Do not invent features — only describe what is actually in the repo based on its name/description
-- Be specific: mention exact modules, libraries, or patterns
-- Write for an Indian engineering student doing a semester project`,
+[{"repo_url": "https://github.com/...", "relevance_note": "..."}]`,
       },
       {
         role: 'user',
         content: `Project: ${idea.project_title}
 Tech Stack: ${idea.tech_stack.join(', ')}
-Problem: ${idea.problem_statement}
 
-Repos to annotate:
+Repos:
 ${repoList}
 
 Return ONLY the JSON array.`,
       },
     ],
     temperature: 0.3,
-    max_tokens: 4096,
+    max_tokens: 1024,
   })
 
-  const msg2 = response.choices[0].message as any
-  const raw = msg2.content || msg2.reasoning_content || msg2.reasoning || '[]'
+  const raw = response.choices[0].message.content || '[]'
   const cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -134,7 +126,7 @@ Return ONLY the JSON array.`,
   try {
     return JSON.parse(cleaned)
   } catch {
-    console.error('[kimi] Invalid JSON from annotateRepos:', cleaned.slice(0, 200))
+    console.error('[ai] Invalid JSON from annotateRepos:', cleaned.slice(0, 200))
     return []
   }
 }

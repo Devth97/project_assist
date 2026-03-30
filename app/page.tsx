@@ -125,7 +125,7 @@ export default function HomePage() {
           Generate original project ideas for your semester. Unlock real GitHub repos for ₹20.
         </p>
         <p className="text-text3 text-sm mb-12">
-          Powered by Kimi K2.5 · Live GitHub search · Razorpay UPI
+          Powered by Llama 3.3 70B via NVIDIA NIM · Live GitHub search · Razorpay UPI
         </p>
 
         {/* Steps strip */}
@@ -209,7 +209,7 @@ export default function HomePage() {
               <div className="absolute -inset-2 rounded-3xl border border-accent/20 animate-ping opacity-20" />
             </div>
             <div>
-              <p className="font-syne font-bold text-xl text-white mb-2">Kimi K2.5 is thinking…</p>
+              <p className="font-syne font-bold text-xl text-white mb-2">Llama 3.3 70B is thinking…</p>
               <p className="text-text3 text-sm max-w-xs mx-auto">Generating your idea + searching GitHub + writing AI relevance notes. This may take up to 30 seconds.</p>
             </div>
             <LoadingSteps />
@@ -272,7 +272,7 @@ export default function HomePage() {
           <strong className="text-text2">EngineerKit AI</strong> — Built for Indian engineering students
         </p>
         <p className="text-text3/60">
-          Payments secured by Razorpay · Repos sourced live from GitHub · AI by Kimi K2.5 via NVIDIA NIM
+          Payments secured by Razorpay · Repos sourced live from GitHub · AI by Llama 3.3 70B via NVIDIA NIM
         </p>
       </footer>
     </main>
