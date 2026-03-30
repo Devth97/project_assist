@@ -61,10 +61,12 @@ Generate a project using ${interest} as the primary technology that solves a vis
       },
     ],
     temperature: 0.8,
-    max_tokens: 1024,
+    max_tokens: 8192,
   })
 
-  const raw = response.choices[0].message.content || ''
+  // Kimi K2.5 is a reasoning model — content may be in .content or .reasoning
+  const msg = response.choices[0].message as any
+  const raw = msg.content || msg.reasoning_content || msg.reasoning || ''
   const cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -118,10 +120,11 @@ Return ONLY the JSON array.`,
       },
     ],
     temperature: 0.3,
-    max_tokens: 800,
+    max_tokens: 4096,
   })
 
-  const raw = response.choices[0].message.content || '[]'
+  const msg2 = response.choices[0].message as any
+  const raw = msg2.content || msg2.reasoning_content || msg2.reasoning || '[]'
   const cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
