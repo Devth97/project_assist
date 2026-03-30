@@ -4,7 +4,7 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "functions": {
-    "app/api/generate-idea/route.ts": { "maxDuration": 30 },
+    "app/api/generate-idea/route.ts": { "maxDuration": 60 },
     "app/api/verify-payment/route.ts": { "maxDuration": 10 },
     "app/api/create-order/route.ts": { "maxDuration": 10 },
     "app/api/razorpay-webhook/route.ts": { "maxDuration": 10 },

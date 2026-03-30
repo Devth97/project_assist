@@ -26,10 +26,12 @@ export function getSupabaseAdmin() {
   }
   return _supabaseAdmin
 }
-// Backwards-compatible alias — typed as any to avoid strict table typing without a schema
+// Backwards-compatible alias — typed as any; methods are bound to preserve `this`
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabaseAdmin = new Proxy({} as any, {
   get(_target, prop) {
-    return (getSupabaseAdmin() as any)[prop]
+    const client = getSupabaseAdmin() as any
+    const value  = client[prop]
+    return typeof value === 'function' ? value.bind(client) : value
   },
 })

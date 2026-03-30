@@ -11,6 +11,7 @@ import { ProjectIdea, Repo, AppState, GenerateIdeaResponse } from '@/types'
 const STATS = [
   { value: '10+', label: 'Engineering Branches' },
   { value: '15+', label: 'Interest Areas' },
+  { value: '100%', label: 'Original Ideas' },
   { value: '₹20', label: 'Per Reveal' },
 ]
 
@@ -43,7 +44,13 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ branch, interest, year }),
       })
-      const data: GenerateIdeaResponse = await res.json()
+
+      let data: GenerateIdeaResponse
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error('Server took too long or returned an invalid response. Please try again.')
+      }
 
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to generate idea')
 
@@ -177,23 +184,33 @@ export default function HomePage() {
 
         {/* Error */}
         {error && (
-          <div className="animate-fade-in bg-accent2/5 border border-accent2/20 rounded-xl px-5 py-4 text-accent2 text-sm">
-            <strong>Error: </strong>{error}
+          <div className="animate-fade-in bg-accent2/5 border border-accent2/20 rounded-2xl px-5 py-5 flex items-start gap-4">
+            <span className="text-2xl mt-0.5">⚠️</span>
+            <div className="flex-1">
+              <p className="text-accent2 font-semibold text-sm mb-1">Something went wrong</p>
+              <p className="text-text2 text-sm leading-relaxed">{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="mt-3 text-xs text-text3 hover:text-text2 underline underline-offset-2"
+              >
+                Dismiss and try again
+              </button>
+            </div>
           </div>
         )}
 
         {/* Generating state */}
         {appState === 'generating' && (
-          <div className="animate-fade-in flex flex-col items-center py-16 space-y-6 text-center">
+          <div className="animate-fade-in flex flex-col items-center py-12 space-y-8 text-center">
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                <span className="text-2xl">🤖</span>
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 flex items-center justify-center shadow-lg shadow-accent/10">
+                <span className="text-3xl">🤖</span>
               </div>
-              <div className="absolute -inset-1 rounded-2xl border border-accent/30 animate-ping opacity-30" />
+              <div className="absolute -inset-2 rounded-3xl border border-accent/20 animate-ping opacity-20" />
             </div>
             <div>
-              <p className="font-syne font-bold text-lg text-white mb-1">Kimi K2.5 is thinking…</p>
-              <p className="text-text3 text-sm">Generating your idea + searching GitHub for real repos</p>
+              <p className="font-syne font-bold text-xl text-white mb-2">Kimi K2.5 is thinking…</p>
+              <p className="text-text3 text-sm max-w-xs mx-auto">Generating your idea + searching GitHub + writing AI relevance notes. This may take up to 30 seconds.</p>
             </div>
             <LoadingSteps />
           </div>
