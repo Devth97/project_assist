@@ -11,7 +11,6 @@ import { ProjectIdea, Repo, AppState, GenerateIdeaResponse } from '@/types'
 const STATS = [
   { value: '10+', label: 'Engineering Branches' },
   { value: '15+', label: 'Interest Areas' },
-  { value: '96%', label: 'Profit Margin' },
   { value: '₹20', label: 'Per Reveal' },
 ]
 

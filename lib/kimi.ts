@@ -71,7 +71,12 @@ Generate a project using ${interest} as the primary technology that solves a vis
     .replace(/\s*```$/i, '')
     .trim()
 
-  return JSON.parse(cleaned) as ProjectIdea
+  try {
+    return JSON.parse(cleaned) as ProjectIdea
+  } catch {
+    console.error('[kimi] Invalid JSON from model:', cleaned.slice(0, 200))
+    throw new Error('AI returned an invalid response. Please try again.')
+  }
 }
 
 // ── Repo Relevance Annotator ────────────────────────────────────────────────────
@@ -123,5 +128,10 @@ Return ONLY the JSON array.`,
     .replace(/\s*```$/i, '')
     .trim()
 
-  return JSON.parse(cleaned)
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    console.error('[kimi] Invalid JSON from annotateRepos:', cleaned.slice(0, 200))
+    return []
+  }
 }
