@@ -67,9 +67,10 @@ Generate a project using ${interest} as the primary technology that solves a vis
 
   const raw = response.choices[0].message.content || ''
   const cleaned = raw
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '') // strip Kimi reasoning blocks
+    .replace(/^```json\s*/im, '')
+    .replace(/^```\s*/im, '')
+    .replace(/\s*```$/im, '')
     .trim()
 
   try {
@@ -118,9 +119,10 @@ Return ONLY the JSON array.`,
 
   const raw = response.choices[0].message.content || '[]'
   const cleaned = raw
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '') // strip Kimi reasoning blocks
+    .replace(/^```json\s*/im, '')
+    .replace(/^```\s*/im, '')
+    .replace(/\s*```$/im, '')
     .trim()
 
   try {

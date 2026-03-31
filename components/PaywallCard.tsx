@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Repo } from '@/types'
 import PayButton from './PayButton'
 
@@ -34,6 +35,28 @@ interface PaywallCardProps {
 }
 
 export default function PaywallCard({ sessionId, onSuccess }: PaywallCardProps) {
+  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [testError,  setTestError]  = useState('')
+
+  async function handleTestReveal() {
+    setTestStatus('loading')
+    setTestError('')
+    try {
+      const res  = await fetch('/api/test-reveal', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ session_id: sessionId }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) throw new Error(data.error ?? 'Reveal failed')
+      onSuccess(data.repos)
+      setTestStatus('idle')
+    } catch (err) {
+      setTestError(err instanceof Error ? err.message : 'Reveal failed')
+      setTestStatus('error')
+    }
+  }
+
   return (
     <div className="animate-slide-up w-full max-w-2xl mx-auto mt-6">
       {/* Section header */}
@@ -88,6 +111,21 @@ export default function PaywallCard({ sessionId, onSuccess }: PaywallCardProps) 
             amount={20}
             onSuccess={onSuccess}
           />
+
+          {/* ── TEST BYPASS — remove once Razorpay website is verified ── */}
+          <div className="mt-3 flex flex-col items-center gap-1">
+            <button
+              onClick={handleTestReveal}
+              disabled={testStatus === 'loading'}
+              className="text-xs text-accent3 border border-accent3/30 hover:border-accent3/60 px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+            >
+              {testStatus === 'loading' ? '⏳ Revealing…' : '🧪 Test Reveal (Free — Dev Only)'}
+            </button>
+            {testStatus === 'error' && (
+              <p className="text-accent2 text-[11px]">{testError}</p>
+            )}
+          </div>
+          {/* ── END TEST BYPASS ── */}
 
           <div className="mt-5 flex items-center gap-5 text-xs text-text3">
             <span className="flex items-center gap-1.5">

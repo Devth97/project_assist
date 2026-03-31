@@ -64,26 +64,35 @@ export async function findRepos(idea: ProjectIdea): Promise<Repo[]> {
 
 // ── GitHub Search API ───────────────────────────────────────────────────────────
 async function searchGitHub(idea: ProjectIdea): Promise<Repo[]> {
-  const techTerms  = idea.tech_stack.slice(0, 2).join(' ')
-  const titleTerms = idea.project_title.split(' ').slice(0, 4).join(' ')
-  const q          = encodeURIComponent(`${techTerms} ${titleTerms}`)
+  // Use only tech stack terms — project titles are AI-generated names (e.g. "PhishGuard")
+  // that don't exist on GitHub, which makes combined queries return 0 results.
+  const techTerms = idea.tech_stack.slice(0, 2).join(' ')
 
-  const res = await fetch(
-    `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=10`,
-    {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        Accept:        'application/vnd.github.v3+json',
-      },
-      next: { revalidate: 0 }, // no Next.js cache — always fresh
-    }
-  )
+  const trySearch = async (q: string): Promise<GHRepo[]> => {
+    const res = await fetch(
+      `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=10`,
+      {
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          Accept:        'application/vnd.github.v3+json',
+        },
+        next: { revalidate: 0 },
+      }
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data.items ?? []).filter((r: GHRepo) => r.stargazers_count > 10)
+  }
 
-  if (!res.ok) return []
+  // 1st attempt: tech terms only (broad, reliable)
+  let items = await trySearch(techTerms)
 
-  const data = await res.json()
-  return (data.items ?? [])
-    .filter((r: GHRepo) => r.stargazers_count > 50)
+  // 2nd attempt: if too few results, fall back to just the primary tech
+  if (items.length < 3) {
+    items = await trySearch(idea.tech_stack[0])
+  }
+
+  return items
     .slice(0, 8)
     .map((r: GHRepo): Repo => ({
       name:        r.full_name,
