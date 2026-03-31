@@ -15,10 +15,10 @@ export function formatStars(stars: number): string {
 
 export function difficultyColor(difficulty: string): string {
   switch (difficulty) {
-    case 'Beginner':     return 'text-accent3 bg-accent3/10 border-accent3/20'
-    case 'Intermediate': return 'text-accent4 bg-accent4/10 border-accent4/20'
-    case 'Advanced':     return 'text-accent2 bg-accent2/10 border-accent2/20'
-    default:             return 'text-text2 bg-white/5 border-white/10'
+    case 'Beginner':     return 'text-emerald bg-emerald/8 border-emerald/20'
+    case 'Intermediate': return 'text-amber   bg-amber/8   border-amber/20'
+    case 'Advanced':     return 'text-rose    bg-rose/8    border-rose/20'
+    default:             return 'text-text2   bg-white/5   border-white/10'
   }
 }
 

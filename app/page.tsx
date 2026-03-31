@@ -1,87 +1,76 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import IdeaForm    from '@/components/IdeaForm'
-import IdeaCard    from '@/components/IdeaCard'
-import PaywallCard from '@/components/PaywallCard'
-import RepoCard    from '@/components/RepoCard'
-import { ProjectIdea, Repo, AppState, GenerateIdeaResponse } from '@/types'
+import IdeaForm  from '@/components/IdeaForm'
+import IdeaCard  from '@/components/IdeaCard'
+import RepoCard  from '@/components/RepoCard'
+import { ProjectIdea, Repo, GenerateIdeaResponse } from '@/types'
 
-// ── Stat counter strip ────────────────────────────────────────────────────────
-const STATS = [
-  { value: '10+', label: 'Engineering Branches' },
-  { value: '15+', label: 'Interest Areas' },
-  { value: '100%', label: 'Original Ideas' },
-  { value: '₹20', label: 'Per Reveal' },
+type AppState = 'idle' | 'generating' | 'done' | 'error'
+
+const STEPS = [
+  { n: '01', label: 'Select Branch & Interest' },
+  { n: '02', label: 'AI Generates Your Idea'   },
+  { n: '03', label: 'GitHub Repos Revealed'     },
 ]
 
-// ── Step indicator ────────────────────────────────────────────────────────────
-const STEPS = [
-  { n: '01', label: 'Select Branch & Interest', free: true  },
-  { n: '02', label: 'AI Generates Your Idea',   free: true  },
-  { n: '03', label: 'Repos Found & Locked',      free: false },
-  { n: '04', label: 'Pay ₹20 to Reveal',         free: false },
+const STATS = [
+  { value: '10+',  label: 'Branches'   },
+  { value: '15+',  label: 'Interests'  },
+  { value: '100%', label: 'Original'   },
+  { value: 'Free', label: 'Always'     },
 ]
 
 export default function HomePage() {
   const [appState,  setAppState]  = useState<AppState>('idle')
   const [idea,      setIdea]      = useState<ProjectIdea | null>(null)
-  const [sessionId, setSessionId] = useState<string | null>(null)
   const [repos,     setRepos]     = useState<Repo[] | null>(null)
   const [error,     setError]     = useState<string | null>(null)
 
-  // ── Generate idea ───────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async (branch: string, interest: string, year: string) => {
     setAppState('generating')
     setError(null)
     setIdea(null)
     setRepos(null)
-    setSessionId(null)
 
     try {
-      const res  = await fetch('/api/generate-idea', {
+      // Step 1 — generate idea + store repos in DB
+      const res = await fetch('/api/generate-idea', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ branch, interest, year }),
       })
 
       let data: GenerateIdeaResponse
-      try {
-        data = await res.json()
-      } catch {
-        throw new Error('Server took too long or returned an invalid response. Please try again.')
-      }
+      try { data = await res.json() }
+      catch { throw new Error('Server took too long. Please try again.') }
 
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to generate idea')
 
       setIdea(data.idea)
-      setSessionId(data.session_id)
-      setAppState('idea_ready')
 
-      // Scroll to results
+      // Step 2 — auto-reveal repos (free for all)
+      const revealRes = await fetch('/api/test-reveal', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ session_id: data.session_id }),
+      })
+      const revealData = await revealRes.json()
+      if (revealRes.ok && revealData.repos) setRepos(revealData.repos)
+
+      setAppState('done')
       setTimeout(() => {
         document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-      setAppState('idle')
+      setAppState('error')
     }
   }, [])
 
-  // ── Payment success ─────────────────────────────────────────────────────────
-  const handlePaymentSuccess = useCallback((unlockedRepos: Repo[]) => {
-    setRepos(unlockedRepos)
-    setAppState('repos_revealed')
-    setTimeout(() => {
-      document.getElementById('repos-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
-  }, [])
-
-  // ── Reset ───────────────────────────────────────────────────────────────────
   const handleReset = useCallback(() => {
     setAppState('idle')
     setIdea(null)
-    setSessionId(null)
     setRepos(null)
     setError(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -92,87 +81,90 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-bg">
 
-      {/* ── HERO ────────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-white/7 px-6 py-20 text-center">
-        {/* Glow */}
+      {/* ── HERO ─────────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-6 pt-24 pb-20 flex flex-col items-center text-center">
+
+        {/* Dot grid */}
+        <div className="absolute inset-0 dot-grid opacity-35 pointer-events-none" />
+
+        {/* Amber radial glow */}
         <div
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-32 w-[600px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(ellipse, rgba(108,99,255,0.16) 0%, transparent 70%)' }}
-          aria-hidden="true"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(240,125,12,0.13) 0%, transparent 65%)' }}
         />
 
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-xs font-semibold text-accent/90 uppercase tracking-widest mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse-slow" />
-          AI Project Idea Generator — v1
+        <div className="relative mb-10 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber/20 bg-amber/5 text-amber font-mono text-xs uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber animate-pulse-slow" />
+          AI Project Idea Generator · v2
         </div>
 
-        {/* Title */}
+        {/* Hero title */}
         <h1
-          className="font-syne font-extrabold leading-none tracking-tight mb-5"
-          style={{
-            fontSize: 'clamp(36px, 6vw, 72px)',
-            background: 'linear-gradient(135deg, #fff 0%, #9B96FF 50%, #6C63FF 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
+          className="relative font-display font-extrabold leading-[0.9] tracking-tight mb-6"
+          style={{ fontSize: 'clamp(56px, 11vw, 128px)' }}
         >
-          EngineerKit AI
+          <span className="block text-text">ENGINEER</span>
+          <span className="block">
+            <span className="text-text">KIT </span>
+            <span className="text-amber">AI.</span>
+          </span>
         </h1>
 
-        <p className="text-text2 text-lg leading-relaxed max-w-lg mx-auto mb-4">
-          Generate original project ideas for your semester. Unlock real GitHub repos for ₹20.
-        </p>
-        <p className="text-text3 text-sm mb-12">
-          Powered by Llama 3.3 70B via NVIDIA NIM · Live GitHub search · Razorpay UPI
+        {/* Subtitle */}
+        <p className="relative text-text2 text-lg max-w-md leading-relaxed mb-3 font-body">
+          Generate original project ideas for your semester.<br />
+          Get curated GitHub repos — <span className="text-amber font-semibold">completely free</span>.
         </p>
 
-        {/* Steps strip */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
+        {/* Mono powered-by line */}
+        <p className="relative font-mono text-text3 text-xs mb-14 tracking-wide">
+          <span className="text-amber/50">$</span> llama-3.3-70b · live github search · built for india
+        </p>
+
+        {/* Steps */}
+        <div className="relative flex flex-wrap justify-center gap-2 mb-14">
           {STEPS.map(s => (
             <div
               key={s.n}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-medium"
-              style={{
-                background: s.free ? 'rgba(0,217,163,0.05)' : 'rgba(108,99,255,0.05)',
-                borderColor: s.free ? 'rgba(0,217,163,0.2)' : 'rgba(108,99,255,0.2)',
-                color: s.free ? '#00D9A3' : '#9B96FF',
-              }}
+              className="flex items-center gap-2.5 px-4 py-2 rounded-lg border border-amber/12 bg-amber/4 text-xs font-mono"
             >
-              <span className="font-mono opacity-60">{s.n}</span>
-              {s.label}
-              {s.free
-                ? <span className="bg-accent3/10 text-accent3 text-[10px] px-1.5 py-0.5 rounded-md border border-accent3/20 font-bold">FREE</span>
-                : <span className="bg-accent/10 text-accent text-[10px] px-1.5 py-0.5 rounded-md border border-accent/20 font-bold">₹20</span>
-              }
+              <span className="text-amber/50">{s.n}</span>
+              <span className="text-text2">{s.label}</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald/10 border border-emerald/20 text-emerald font-bold">FREE</span>
             </div>
           ))}
         </div>
 
         {/* Stats */}
-        <div className="flex flex-wrap justify-center gap-8">
+        <div className="relative flex flex-wrap justify-center gap-10">
           {STATS.map(s => (
             <div key={s.label} className="text-center">
-              <div className="font-syne font-bold text-2xl text-white">{s.value}</div>
-              <div className="text-text3 text-xs mt-0.5">{s.label}</div>
+              <div className="font-display font-bold text-2xl text-amber">{s.value}</div>
+              <div className="text-text3 font-mono text-xs mt-0.5 uppercase tracking-wider">{s.label}</div>
             </div>
           ))}
         </div>
+
+        {/* Bottom divider */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber/20 to-transparent" />
       </section>
 
-      {/* ── FORM + RESULTS ──────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-6 py-16 space-y-12" id="results">
+      {/* ── FORM + RESULTS ───────────────────────────────────────────────────── */}
+      <section className="max-w-2xl mx-auto px-6 py-16 space-y-12">
 
-        {/* Form — shown in idle state and also after results (for re-generating) */}
-        {(appState === 'idle' || appState === 'idea_ready' || appState === 'repos_revealed') && (
-          <div className={appState !== 'idle' ? 'opacity-60 hover:opacity-100 transition-opacity' : ''}>
-            {appState !== 'idle' && (
+        {/* Form block */}
+        {(appState === 'idle' || appState === 'error' || appState === 'done') && (
+          <div className={appState === 'done' ? 'opacity-60 hover:opacity-100 transition-opacity duration-300' : ''}>
+            {appState === 'done' && (
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-syne font-bold text-lg text-white">Generate Another Idea</h2>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-px bg-amber" />
+                  <span className="font-mono text-amber text-sm uppercase tracking-widest">Generate Another</span>
+                </div>
                 <button
                   onClick={handleReset}
-                  className="text-xs text-text3 hover:text-text2 border border-white/10 hover:border-white/20 px-3 py-1.5 rounded-lg transition-all"
+                  className="font-mono text-xs text-text3 hover:text-amber border border-white/8 hover:border-amber/30 px-3 py-1.5 rounded-lg transition-all"
                 >
                   ↺ Start fresh
                 </button>
@@ -183,15 +175,15 @@ export default function HomePage() {
         )}
 
         {/* Error */}
-        {error && (
-          <div className="animate-fade-in bg-accent2/5 border border-accent2/20 rounded-2xl px-5 py-5 flex items-start gap-4">
-            <span className="text-2xl mt-0.5">⚠️</span>
+        {(appState === 'error') && error && (
+          <div className="animate-fade-in bg-rose/5 border border-rose/20 rounded-2xl px-5 py-5 flex items-start gap-4">
+            <span className="text-rose text-xl mt-0.5">⚠</span>
             <div className="flex-1">
-              <p className="text-accent2 font-semibold text-sm mb-1">Something went wrong</p>
-              <p className="text-text2 text-sm leading-relaxed">{error}</p>
+              <p className="text-rose font-semibold text-sm mb-1 font-body">Something went wrong</p>
+              <p className="text-text2 text-sm leading-relaxed font-body">{error}</p>
               <button
-                onClick={() => setError(null)}
-                className="mt-3 text-xs text-text3 hover:text-text2 underline underline-offset-2"
+                onClick={() => { setError(null); setAppState('idle') }}
+                className="mt-3 font-mono text-xs text-text3 hover:text-amber underline underline-offset-2"
               >
                 Dismiss and try again
               </button>
@@ -199,66 +191,47 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Generating state */}
+        {/* Generating */}
         {appState === 'generating' && (
-          <div className="animate-fade-in flex flex-col items-center py-12 space-y-8 text-center">
+          <div className="animate-fade-in flex flex-col items-center py-16 space-y-8 text-center">
             <div className="relative">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 flex items-center justify-center shadow-lg shadow-accent/10">
-                <span className="text-3xl">🤖</span>
+              <div className="w-20 h-20 rounded-3xl bg-amber/10 border border-amber/20 flex items-center justify-center animate-amber-pulse">
+                <span className="text-3xl animate-float">⚡</span>
               </div>
-              <div className="absolute -inset-2 rounded-3xl border border-accent/20 animate-ping opacity-20" />
+              <div className="absolute -inset-2 rounded-3xl border border-amber/15 animate-ping opacity-20" />
             </div>
             <div>
-              <p className="font-syne font-bold text-xl text-white mb-2">Llama 3.3 70B is thinking…</p>
-              <p className="text-text3 text-sm max-w-xs mx-auto">Generating your idea + searching GitHub + writing AI relevance notes. This may take up to 30 seconds.</p>
+              <p className="font-display font-bold text-xl text-text mb-2">Generating Your Idea</p>
+              <p className="text-text3 font-mono text-xs">
+                <span className="text-amber">llama-3.3-70b</span> is crafting + fetching repos...
+              </p>
             </div>
             <LoadingSteps />
           </div>
         )}
 
-        {/* Idea card + paywall / repos */}
-        {(appState === 'idea_ready' || appState === 'repos_revealed') && idea && (
-          <div className="space-y-8">
+        {/* Results */}
+        {appState === 'done' && idea && (
+          <div className="space-y-6" id="results">
             <IdeaCard idea={idea} />
 
-            {appState === 'idea_ready' && sessionId && (
-              <PaywallCard sessionId={sessionId} onSuccess={handlePaymentSuccess} />
-            )}
-
-            {appState === 'repos_revealed' && repos && repos.length > 0 && (
-              <div className="animate-fade-in" id="repos-section">
-                {/* Unlocked header */}
-                <div className="flex items-center gap-2 mb-5">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-accent3/10 border border-accent3/20 text-accent3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent3" />
-                    Unlocked
-                  </span>
-                  <span className="text-xs text-text3">
-                    {repos.length} GitHub repos curated for your project
+            {repos && repos.length > 0 && (
+              <div className="animate-fade-in">
+                {/* Repos header */}
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-emerald/8 border border-emerald/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald animate-pulse-slow" />
+                    <span className="font-mono text-xs text-emerald uppercase tracking-widest">Unlocked</span>
+                  </div>
+                  <span className="font-mono text-xs text-text3">
+                    {repos.length} github repos curated for your project
                   </span>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {repos.map((repo, i) => (
                     <RepoCard key={repo.url} repo={repo} index={i} />
                   ))}
-                </div>
-
-                {/* Upsell card */}
-                <div className="mt-8 bg-card border border-accent4/20 rounded-2xl p-6 text-center">
-                  <div className="text-2xl mb-3">📦</div>
-                  <h3 className="font-syne font-bold text-base text-white mb-1">
-                    Want the complete project kit?
-                  </h3>
-                  <p className="text-text2 text-sm leading-relaxed mb-5">
-                    Get a full PDF report (abstract, literature review, methodology) + 10-slide PPT with viva notes — ready to submit.
-                  </p>
-                  <button
-                    className="px-6 py-3 rounded-xl font-semibold text-sm bg-accent4/15 border border-accent4/30 text-accent4 hover:bg-accent4/20 transition-all"
-                    onClick={() => alert('Kit generation coming soon! Your session ID: ' + sessionId)}
-                  >
-                    Unlock Full Kit for ₹100
-                  </button>
                 </div>
               </div>
             )}
@@ -266,39 +239,38 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/7 py-10 text-center text-xs text-text3 px-6">
-        <p className="mb-2">
-          <strong className="text-text2">EngineerKit AI</strong> — Built for Indian engineering students
-        </p>
-        <p className="text-text3/60">
-          Payments secured by Razorpay · Repos sourced live from GitHub · AI by Llama 3.3 70B via NVIDIA NIM
+      {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-amber/8 py-10 text-center px-6">
+        <p className="font-display font-bold text-text text-sm mb-1">EngineerKit AI</p>
+        <p className="font-mono text-text3 text-xs">
+          Built for Indian engineering students · AI by Llama 3.3 70B via NVIDIA NIM · Repos from GitHub
         </p>
       </footer>
     </main>
   )
 }
 
-// ── Loading sub-component ─────────────────────────────────────────────────────
 function LoadingSteps() {
   const steps = [
-    { icon: '🧠', label: 'Crafting your project idea…',      done: true  },
-    { icon: '🔍', label: 'Searching GitHub for real repos…', done: false },
-    { icon: '✨', label: 'Writing AI relevance notes…',       done: false },
+    { icon: '⚡', label: 'Crafting your project idea...',  active: true  },
+    { icon: '⭐', label: 'Searching GitHub repos...',      active: false },
+    { icon: '🎯', label: 'Ranking & storing results...',   active: false },
   ]
-
   return (
-    <div className="space-y-2 text-left w-full max-w-xs">
+    <div className="w-full max-w-sm space-y-2">
       {steps.map((s, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-card border border-white/7 text-sm"
-          style={{ opacity: i === 0 ? 1 : 0.4 }}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border font-mono text-sm transition-all ${
+            s.active
+              ? 'bg-amber/5 border-amber/20 text-text2'
+              : 'bg-surface border-white/5 text-text3 opacity-35'
+          }`}
         >
           <span>{s.icon}</span>
-          <span className="text-text2">{s.label}</span>
-          {i === 0 && (
-            <span className="ml-auto w-3.5 h-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+          <span>{s.label}</span>
+          {s.active && (
+            <span className="ml-auto w-3.5 h-3.5 border-2 border-amber/30 border-t-amber rounded-full animate-spin" />
           )}
         </div>
       ))}

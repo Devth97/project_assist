@@ -10,90 +10,96 @@ interface IdeaCardProps {
 export default function IdeaCard({ idea }: IdeaCardProps) {
   return (
     <div className="animate-slide-up w-full max-w-2xl mx-auto">
-      {/* Free badge */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full bg-accent3/10 border border-accent3/20 text-accent3">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent3 animate-pulse-slow" />
-          Free
+
+      {/* Badge row */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest px-3 py-1 rounded-md bg-emerald/8 border border-emerald/20 text-emerald">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald animate-pulse-slow" />
+          Free · AI Generated
         </span>
-        <span className="text-xs text-text3">Your AI-generated project idea</span>
+        <span className="font-mono text-xs text-text3">your project idea</span>
       </div>
 
-      <div className="bg-card border border-white/7 rounded-2xl overflow-hidden">
+      <div className="bg-surface border border-amber/10 rounded-2xl overflow-hidden glow-card">
+
+        {/* Amber top accent line */}
+        <div className="h-0.5 bg-gradient-to-r from-amber via-amber/50 to-transparent" />
+
         {/* Header */}
-        <div className="p-6 border-b border-white/7 bg-gradient-to-r from-accent/5 to-transparent">
-          <h2 className="font-syne font-bold text-xl text-white leading-tight mb-2">
+        <div className="p-6 border-b border-white/5">
+          <h2 className="font-display font-bold text-2xl text-text leading-tight mb-2">
             {idea.project_title}
           </h2>
-          <p className="text-text2 text-sm leading-relaxed italic">
+          <p className="text-text2 text-sm font-body italic leading-relaxed">
             {idea.tagline}
           </p>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-6">
+
           {/* Problem statement */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-text3 mb-2">
+            <p className="font-mono text-[11px] text-amber/60 uppercase tracking-widest mb-2">
               Problem Statement
             </p>
-            <p className="text-text2 text-sm leading-relaxed">
+            <p className="text-text2 text-sm leading-relaxed font-body">
               {idea.problem_statement}
             </p>
           </div>
 
           {/* Use cases */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-text3 mb-3">
+            <p className="font-mono text-[11px] text-amber/60 uppercase tracking-widest mb-3">
               Use Cases
             </p>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {idea.use_cases.map((uc, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-text2">
-                  <span className="mt-0.5 w-5 h-5 rounded-md bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0 text-accent text-xs font-bold font-mono">
-                    {i + 1}
+                <li key={i} className="flex items-start gap-3 text-sm">
+                  <span className="font-mono text-amber text-xs mt-0.5 min-w-[22px] opacity-70">
+                    0{i + 1}
                   </span>
-                  {uc}
+                  <span className="text-text2 font-body leading-relaxed">{uc}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Brief explanation */}
-          <div className="bg-bg3 rounded-xl p-4 border border-white/5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-text3 mb-2">
-              How it works
+          {/* How it works */}
+          <div className="bg-bg2 rounded-xl p-4 border border-white/5">
+            <p className="font-mono text-[11px] text-amber/60 uppercase tracking-widest mb-2">
+              How It Works
             </p>
-            <p className="text-text2 text-sm leading-relaxed">
+            <p className="text-text2 text-sm leading-relaxed font-body">
               {idea.brief_explanation}
             </p>
           </div>
 
-          {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${difficultyColor(idea.difficulty)}`}>
+          {/* Meta + tech stack */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/5">
+            <span className={`text-xs font-mono px-3 py-1 rounded-md border ${difficultyColor(idea.difficulty)}`}>
               {idea.difficulty}
             </span>
-            <span className="text-xs text-text3 border border-white/10 bg-white/3 px-3 py-1.5 rounded-full">
-              ~{idea.estimated_weeks} weeks
+            <span className="text-xs font-mono px-3 py-1 rounded-md border border-white/8 text-text3">
+              ~{idea.estimated_weeks}w
             </span>
           </div>
 
-          {/* Tech stack */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-text3 mb-3">
+            <p className="font-mono text-[11px] text-amber/60 uppercase tracking-widest mb-3">
               Recommended Tech Stack
             </p>
             <div className="flex flex-wrap gap-2">
               {idea.tech_stack.map((tech, i) => (
                 <span
                   key={i}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-accent/90"
+                  className="text-xs font-mono px-3 py-1.5 rounded-md bg-amber/8 border border-amber/20 text-amber/90"
                 >
                   {tech}
                 </span>
               ))}
             </div>
           </div>
+
         </div>
       </div>
     </div>
