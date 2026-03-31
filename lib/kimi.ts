@@ -1,33 +1,58 @@
-import OpenAI from 'openai'
-import { ProjectIdea, Repo } from '@/types'
+import { ProjectIdea } from '@/types'
 
-// NVIDIA NIM — using Llama 3.3 70B (fast, ~3-5s) via OpenAI-compatible API
-// Kimi K2.5 is a 95-second reasoning model — too slow for serverless functions
-let _client: OpenAI | null = null
-function getClient() {
-  if (!_client) {
-    _client = new OpenAI({
-      apiKey:  process.env.NVIDIA_API_KEY!,
-      baseURL: 'https://integrate.api.nvidia.com/v1',
-    })
-  }
-  return _client
-}
-
+const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
 const MODEL = 'meta/llama-3.3-70b-instruct'
 
-// ── Idea Generator ─────────────────────────────────────────────────────────────
+// Direct fetch instead of OpenAI SDK — Next.js patches the global fetch with
+// caching logic that breaks streaming/long-lived connections on Vercel.
+async function nimFetch(messages: { role: string; content: string }[], maxTokens = 1024): Promise<string> {
+  const res = await fetch(NVIDIA_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.8,
+      max_tokens: maxTokens,
+      stream: false,
+    }),
+    // Bypass Next.js fetch cache — required for Vercel serverless
+    cache: 'no-store',
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    console.error('[nim] Error response:', res.status, text.slice(0, 200))
+    throw new Error(`NVIDIA NIM returned ${res.status}`)
+  }
+
+  const data = await res.json()
+  return data.choices?.[0]?.message?.content ?? ''
+}
+
+function parseJSON(raw: string): unknown {
+  const cleaned = raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/^```json\s*/im, '')
+    .replace(/^```\s*/im, '')
+    .replace(/\s*```$/im, '')
+    .trim()
+  return JSON.parse(cleaned)
+}
+
+// ── Idea Generator ──────────────────────────────────────────────────────────────
 export async function generateIdea(
   branch: string,
   interest: string,
-  year: string = '3rd Year'
+  year = '3rd Year'
 ): Promise<ProjectIdea> {
-  const response = await getClient().chat.completions.create({
-    model: MODEL,
-    messages: [
-      {
-        role: 'system',
-        content: `You are EngineerKit, an expert AI for Indian engineering students.
+  const raw = await nimFetch([
+    {
+      role: 'system',
+      content: `You are EngineerKit, an expert AI for Indian engineering students.
 Generate ONE original, implementable project idea.
 
 Requirements:
@@ -50,85 +75,22 @@ RETURN ONLY valid JSON with no markdown fences, no extra text, no explanations:
 }
 
 difficulty must be exactly one of: Beginner, Intermediate, Advanced`,
-      },
-      {
-        role: 'user',
-        content: `Branch: ${branch}
+    },
+    {
+      role: 'user',
+      content: `Branch: ${branch}
 Interest: ${interest}
 Academic Year: ${year}
 University context: Indian engineering (VTU / ANNA / Mumbai / JNTU / RGPV)
 
 Generate a project using ${interest} as the primary technology that solves a visible problem in India. Return ONLY the JSON object.`,
-      },
-    ],
-    temperature: 0.8,
-    max_tokens: 1024,
-  })
-
-  const raw = response.choices[0].message.content || ''
-  const cleaned = raw
-    .replace(/<think>[\s\S]*?<\/think>/gi, '') // strip Kimi reasoning blocks
-    .replace(/^```json\s*/im, '')
-    .replace(/^```\s*/im, '')
-    .replace(/\s*```$/im, '')
-    .trim()
+    },
+  ], 1024)
 
   try {
-    return JSON.parse(cleaned) as ProjectIdea
+    return parseJSON(raw) as ProjectIdea
   } catch {
-    console.error('[ai] Invalid JSON from model. Raw:', cleaned.slice(0, 300))
+    console.error('[ai] Invalid JSON from model. Raw:', raw.slice(0, 300))
     throw new Error('AI returned an invalid response. Please try again.')
-  }
-}
-
-// ── Repo Relevance Annotator ────────────────────────────────────────────────────
-export async function annotateRepos(
-  idea: ProjectIdea,
-  repos: Repo[]
-): Promise<Array<{ repo_url: string; relevance_note: string }>> {
-  if (repos.length === 0) return []
-
-  const repoList = repos
-    .map(r => `- URL: ${r.url}\n  Name: ${r.name}\n  Description: ${r.description}\n  Language: ${r.language}\n  Stars: ${r.stars}`)
-    .join('\n')
-
-  const response = await getClient().chat.completions.create({
-    model: MODEL,
-    messages: [
-      {
-        role: 'system',
-        content: `Given a project idea and GitHub repos, write a 1-2 sentence relevance note for each repo.
-
-RETURN ONLY a JSON array, no markdown, no extra text:
-[{"repo_url": "https://github.com/...", "relevance_note": "..."}]`,
-      },
-      {
-        role: 'user',
-        content: `Project: ${idea.project_title}
-Tech Stack: ${idea.tech_stack.join(', ')}
-
-Repos:
-${repoList}
-
-Return ONLY the JSON array.`,
-      },
-    ],
-    temperature: 0.3,
-    max_tokens: 1024,
-  })
-
-  const raw = response.choices[0].message.content || '[]'
-  const cleaned = raw
-    .replace(/<think>[\s\S]*?<\/think>/gi, '') // strip Kimi reasoning blocks
-    .replace(/^```json\s*/im, '')
-    .replace(/^```\s*/im, '')
-    .replace(/\s*```$/im, '')
-    .trim()
-
-  try {
-    return JSON.parse(cleaned)
-  } catch {
-    console.error('[ai] Invalid JSON from annotateRepos:', cleaned.slice(0, 200))
-    return []
   }
 }
