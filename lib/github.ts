@@ -1,9 +1,10 @@
 import { ProjectIdea, Repo } from '@/types'
 import { supabaseAdmin } from './supabase'
 import { sha256 } from './utils'
-import { annotateRepos } from './kimi'
 
 // ── Main entry point ────────────────────────────────────────────────────────────
+// Note: AI annotation removed — two sequential NVIDIA NIM calls in one
+// serverless function caused consistent timeouts on Vercel Hobby (60s limit).
 export async function findRepos(idea: ProjectIdea): Promise<Repo[]> {
   const cacheKey = sha256(`${idea.project_title}-${idea.tech_stack[0]}-${idea.tech_stack[1] || ''}`)
 
@@ -19,16 +20,16 @@ export async function findRepos(idea: ProjectIdea): Promise<Repo[]> {
     if (age < 24) return cached.repos_json as Repo[]
   }
 
-  // 2. Primary: GitHub Search API (structured, 5k req/hr with token)
+  // 2. GitHub Search API
   let repos = await searchGitHub(idea)
 
-  // 3. Fallback: Firecrawl when GitHub returns fewer than 3 results
+  // 3. Fallback if fewer than 3 results
   if (repos.length < 3 && process.env.FIRECRAWL_API_KEY) {
     const extras = await scrapeViaFirecrawl(idea.project_title, idea.tech_stack[0])
     repos = [...repos, ...extras]
   }
 
-  // 4. Score: stars + tech match + recency
+  // 4. Score and rank by stars + tech match + recency
   const scored = repos
     .map(r => ({
       ...r,
@@ -36,30 +37,20 @@ export async function findRepos(idea: ProjectIdea): Promise<Repo[]> {
         r.stars / 100 +
         (idea.tech_stack.some(t =>
           `${r.description} ${r.name}`.toLowerCase().includes(t.toLowerCase())
-        )
-          ? 5
-          : 0) +
+        ) ? 5 : 0) +
         (new Date(r.updated).getFullYear() >= 2023 ? 3 : 0),
     }))
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
     .slice(0, 5)
 
-  // 5. Annotate with Kimi relevance notes
-  const annotations = await annotateRepos(idea, scored)
-  const annotated = scored.map(repo => ({
-    ...repo,
-    relevance_note:
-      annotations.find(a => a.repo_url === repo.url)?.relevance_note ?? '',
-  }))
-
-  // 6. Cache results
+  // 5. Cache results
   await supabaseAdmin.from('scrape_cache').upsert({
-    query_hash:  cacheKey,
-    repos_json:  annotated,
-    cached_at:   new Date().toISOString(),
+    query_hash: cacheKey,
+    repos_json: scored,
+    cached_at:  new Date().toISOString(),
   })
 
-  return annotated
+  return scored
 }
 
 // ── GitHub Search API ───────────────────────────────────────────────────────────
