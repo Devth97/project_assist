@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { generateIdea } from '@/lib/kimi'
 import { findRepos } from '@/lib/github'
 
+// Required for Next.js App Router — vercel.json maxDuration is ignored for API routes
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
