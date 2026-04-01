@@ -57,11 +57,11 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
   }
 
   const selectCls = cn(
-    'w-full bg-surface border rounded-xl px-4 py-3.5',
-    'text-text font-body text-sm appearance-none cursor-pointer',
-    'focus:outline-none focus:border-amber/40 focus:ring-1 focus:ring-amber/15',
-    'hover:border-amber/20 transition-colors',
-    'border-amber/10',
+    'w-full bg-white border rounded-xl px-4 py-3.5',
+    'text-ink font-body text-sm appearance-none cursor-pointer',
+    'focus:outline-none focus:border-purple/40 focus:ring-1 focus:ring-purple/15',
+    'hover:border-purple/25 transition-colors',
+    'border-ink/12',
   )
 
   return (
@@ -69,15 +69,15 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
 
       {/* Section title */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-6 h-px bg-amber" />
-        <span className="font-mono text-amber text-sm uppercase tracking-widest">Configure Your Idea</span>
+        <div className="w-6 h-px bg-purple" />
+        <span className="font-mono text-purple text-sm uppercase tracking-widest">Configure Your Idea</span>
       </div>
 
       {/* Branch */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-amber font-mono text-sm select-none">›</span>
-          <label className="font-mono text-xs uppercase tracking-widest text-text3">
+          <span className="text-purple font-mono text-sm select-none">›</span>
+          <label className="font-mono text-xs uppercase tracking-widest text-muted">
             Engineering Branch
           </label>
         </div>
@@ -86,15 +86,15 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
             <option value="" disabled>Select your branch...</option>
             {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-amber/40 text-xs">▼</span>
+          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted/60 text-xs">▼</span>
         </div>
       </div>
 
       {/* Interest */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-amber font-mono text-sm select-none">›</span>
-          <label className="font-mono text-xs uppercase tracking-widest text-text3">
+          <span className="text-purple font-mono text-sm select-none">›</span>
+          <label className="font-mono text-xs uppercase tracking-widest text-muted">
             Area of Interest / Primary Technology
           </label>
         </div>
@@ -103,15 +103,15 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
             <option value="" disabled>Select your interest...</option>
             {INTERESTS.default.map(i => <option key={i} value={i}>{i}</option>)}
           </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-amber/40 text-xs">▼</span>
+          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted/60 text-xs">▼</span>
         </div>
       </div>
 
       {/* Year */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-amber font-mono text-sm select-none">›</span>
-          <label className="font-mono text-xs uppercase tracking-widest text-text3">
+          <span className="text-purple font-mono text-sm select-none">›</span>
+          <label className="font-mono text-xs uppercase tracking-widest text-muted">
             Academic Year
           </label>
         </div>
@@ -125,7 +125,7 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
                 'py-2.5 rounded-xl text-xs font-mono border transition-all',
                 year === y
                   ? 'bg-amber text-bg border-amber font-bold shadow-lg shadow-amber/20'
-                  : 'bg-transparent border-white/8 text-text3 hover:border-amber/20 hover:text-text2',
+                  : 'bg-white/60 border-ink/12 text-muted hover:border-amber/30 hover:text-text2',
               )}
             >
               {y.replace(' Year', 'Y')}
@@ -140,9 +140,9 @@ export default function IdeaForm({ onSubmit, isLoading }: IdeaFormProps) {
         disabled={!branch || !interest || isLoading}
         className={cn(
           'w-full py-4 rounded-xl font-display font-bold text-sm uppercase tracking-widest transition-all mt-2',
-          'bg-amber text-bg hover:bg-amber/90',
+          'bg-purple text-white hover:bg-purple/90',
           'disabled:opacity-40 disabled:cursor-not-allowed',
-          'shadow-lg shadow-amber/20 hover:shadow-amber/35',
+          'shadow-lg shadow-purple/25 hover:shadow-purple/40',
           'active:scale-[0.99]',
         )}
       >

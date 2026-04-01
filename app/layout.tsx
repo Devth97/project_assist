@@ -1,12 +1,19 @@
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, Fira_Code, Outfit } from 'next/font/google'
-import Script from 'next/script'
+import { Fraunces, Plus_Jakarta_Sans, Fira_Code } from 'next/font/google'
 import './globals.css'
 
-const bricolage = Bricolage_Grotesque({
+const fraunces = Fraunces({
   subsets:  ['latin'],
   variable: '--font-display',
-  weight:   ['400', '600', '700', '800'],
+  weight:   ['400', '700', '900'],
+  style:    ['normal', 'italic'],
+  display:  'swap',
+})
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets:  ['latin'],
+  variable: '--font-body',
+  weight:   ['400', '500', '600', '700'],
   display:  'swap',
 })
 
@@ -14,13 +21,6 @@ const firaCode = Fira_Code({
   subsets:  ['latin'],
   variable: '--font-mono',
   weight:   ['400', '500', '700'],
-  display:  'swap',
-})
-
-const outfit = Outfit({
-  subsets:  ['latin'],
-  variable: '--font-body',
-  weight:   ['400', '500', '600'],
   display:  'swap',
 })
 
@@ -37,10 +37,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${firaCode.variable} ${outfit.variable}`}>
-      <body className="font-body bg-bg text-text antialiased">
+    <html lang="en" className={`${fraunces.variable} ${plusJakarta.variable} ${firaCode.variable}`}>
+      <body className="font-body bg-offwhite text-ink antialiased">
         {children}
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       </body>
     </html>
   )
